@@ -8,6 +8,7 @@ PyInteractive                           *pyinteractive*
 Использование                           |pyinteractive-usage|
 Авто-дополнение кода                    |pyinteractive-autocompletion|
 Команды                                 |pyinteractive-commands|
+Настройки                               |pyinteractive-configuration|
 История версий                          |pyinteractive-changelog|
 Благодарность                           |pyinteractive-credits|
 
@@ -62,22 +63,22 @@ PyInteractive                           *pyinteractive*
 ==============================================================================
 
 КОМАНДЫ                                 *pyinteractive-commands*
-
-  *:PyInteractiveREPL*
+*:PyInteractiveREPL*
       Открывает сеанс интерактивной консоли python в командном окне vim.
       Для завершения работы с интерпретатором нажмите <esc>.
       Состояние интерпретатора сохраняется между сеансами, для примера,
       если в первый сеанс ввести x=1 то при следующем открытии
       консоли x всё так же будет равно 1.
 
-  *:PyInteractiveHistory* [options]
+*:PyInteractiveHistory* [options]
       Вывод истории сессии
       опции:
            -r          показать историю без форматирования (raw)
            -i          вывести только историю ввода (input only)
+           -o          вывести только историю вывода (output only)
            -f <FILE>   записать историю в файл
 
-  *:PyInteractiveEval* {code}
+*:PyInteractiveEval* {code}
       Выполнение полученного кода в интерпретаторе. Команда полезна
       для быстрой проверки результатов, так-же например можно
       определить её вызов в контекстном меню.
@@ -90,24 +91,49 @@ PyInteractive                           *pyinteractive*
           >>> inc(10)
           11
 
+*:PyInteractiveRunBuffer*
+     Выполнение текущего буфера в интерпретаторе с выводом результатов
+
 ==============================================================================
 
-БЛАГОДАРНОСТЬ                           *pyinteractive-credits*
+НАСТРОЙКИ                               *pyinteractive-configuration*
 
-Тут я хочу сказать слова благодарности
-ZyX ( http://www.vim.org/account/profile.php?user_id=18939 )
-за помощь в переводе документации и правку кода, спасибо вам.
+                                        *g:pyinteractive_add_menu*
+g:pyinteractive_add_menu~
+По умолчанию: 1
 
+Добавить в меню Plugin подменю PyInteractive.
+Пример:
+>
+    let g:pyinteractive_add_menu = 0
+<
+
+                                        *g:pyinteractive_add_context_menu*
+g:pyinteractive_add_context_menu~
+По умолчанию: 1
+
+Добавить в контекстное меню пункт "Evaluate" для python файлов.
+Пример:
+>
+    let g:pyinteractive_add_context_menu = 0
+>
 ==============================================================================
 
 ИСТОРИЯ ВЕРСИЙ                          *pyinteractive-changelog*
+
+    ver 0.5.4 (2011-10-13)
+    - Добавлена команда PyInteractiveRunBuffer
+    - Добавлено (отключаемое опциями) меню Plugin.PyInteractive
+    - Добавлен (отключаемый опциями) пункт "Evaluate" в контекстное меню
+      для файлов python (доступен при выделении фрагмента кода)
+    - Добавлена новая опция "-o" в команде PyInteractiveHistory
 
     ver 0.5.3 (2010-09-07)
         - Исправлена ошибка автозавершения кода, проявляющаяся в невозможности
           автозавершения, если перед кодом стояли отступы
         - Добавлена поддержка vim-addon-manager
           ( http://www.vim.org/scripts/script.php?script_id=2905 )
-        - Команда PyInteractiveOpen перееимнована в PyInteractiveREPL
+        - Команда PyInteractiveOpen перееимнована в |:PyInteractiveREPL|
 
     ver 0.5.2 (2010-09-01)
         - Реализован авто-отступ
@@ -146,6 +172,14 @@ ZyX ( http://www.vim.org/account/profile.php?user_id=18939 )
     ver 0.1 (2010-04-02)
         - Реализован базовый функционал через команды :PyInteractiveOpen и
           :PyInteractiveReset
+
+==============================================================================
+
+БЛАГОДАРНОСТЬ                           *pyinteractive-credits*
+
+Тут я хочу сказать слова благодарности
+ZyX ( http://www.vim.org/account/profile.php?user_id=18939 )
+за помощь в переводе документации и правку кода, спасибо вам.
 
 ==============================================================================
  vim:tw=78:ts=8:ft=help:norl:

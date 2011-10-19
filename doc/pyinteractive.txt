@@ -8,6 +8,7 @@ Description                             |pyinteractive-description|
 Usage                                   |pyinteractive-usage|
 Autocompletion                          |pyinteractive-autocompletion|
 Commands                                |pyinteractive-commands|
+Configuration                           |pyinteractive-configuration|
 Changelog                               |pyinteractive-changelog|
 Credits                                 |pyinteractive-credits|
 
@@ -75,38 +76,67 @@ Commands                                *pyinteractive-commands*
       Echoes session history.
       Possible options:
            -r          Print history without any formatting (mnemonic: raw)
-           -i          Print only |:PyInteractiveREPL| history (mnemonic:
-                       input)
+           -i          Print only input history (mnemonic: input)
+           -o          Print only output history (mnemonic: output)
            -f {FILE}   Write history to file {FILE}
 
   *:PyInteractiveEval* {code}
       Evaluate given code in the interpreter. Command is useful for quickly
       testing results and for scripting purposes (for example, in context menu).
-      Example: >
-
+      Example:
+>
           :PyInteractiveEval def inc(x): return x+1
           :PyInteractiveEval inc(1)
           2
           :PyInteractiveREPL
           >>> inc(10)
           11
+<
+  *:PyInteractiveRunBuffer*
+      Execute current buffer in python interpreter and show result.
 
 ==============================================================================
 
-Credits                                 *pyinteractive-credits*
+CONFIGURATION                           *pyinteractive-configuration*
 
-Thanks ZyX (http://www.vim.org/account/profile.php?user_id=18939)
-for help in translation documentation and patch code.
+                                        *g:pyinteractive_add_menu*
+g:pyinteractive_add_menu~
+Default: 1
+
+Enable/Disable Plugin.PyInteractive menu.
+Example:
+>
+    let g:pyinteractive_add_menu = 0
+<
+
+                                        *g:pyinteractive_add_context_menu*
+g:pyinteractive_add_context_menu~
+Default: 1
+
+Enable/Disable "Evaluate" menu item (context menu for selected text) for python
+files.
+Example:
+>
+    let g:pyinteractive_add_context_menu = 0
 
 ==============================================================================
 
 Changelog                               *pyinteractive-changelog*
 
+    ver 0.5.4 (2011-10-13)
+        - Added command PyInteractiveRunBuffer
+        - Added PyInteractive menu (Plugin.PyInteractive) and context menu
+          item "Evaluate" (for selected text)
+        - Added option pyinteractive_add_menu
+        - Added pyinteractive_add_context_menu
+        - Added new option "-o" in PyInteractiveHistory command
+        - Bugfixes
+
     ver 0.5.3 (2010-09-07)
         - Fixed autocompletion issue
         - Added vim-addon-manager support
           ( http://www.vim.org/scripts/script.php?script_id=2905 )
-        - Command PyInteractiveOpen renamed to PyInteractiveREPL
+        - Command PyInteractiveOpen renamed to |:PyInteractiveREPL|
 
     ver 0.5.2 (2010-09-01)
         - Automatic indentation
@@ -141,6 +171,14 @@ Changelog                               *pyinteractive-changelog*
     ver 0.1 (2010-04-02)
         - Initial version: introduced :PyInteractiveOpen and
           :PyInteractiveReset commands
+
+
+==============================================================================
+
+Credits                                 *pyinteractive-credits*
+
+Thanks ZyX (http://www.vim.org/account/profile.php?user_id=18939)
+for help in translation documentation and patch code.
 
 ==============================================================================
  vim:tw=78:ts=8:ft=help:norl:

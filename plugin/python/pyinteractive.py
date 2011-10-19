@@ -63,7 +63,7 @@ def redirect_output(stream):
         Usage:
             >>> stream = StringIO()
             >>> with redirect_output(stream):
-            ...     print "Hello"
+            ...     print("Hello")
             ...
             >>> stream.getvalue()
             'Hello\\n'
@@ -94,7 +94,7 @@ def _tokenize(codestr):
     try:
         token_info = tokenize.tokenize(StringIO(codestr).readline,
             (lambda type_, token, (srow, scol), (erow, ecol), line:
-                tokenized.append((type_, token, (srow, scol), (erow, ecol), line))))
+                tokenized.append((type_,token,(srow,scol),(erow,ecol),line))))
 
     except tokenize.TokenError:
         pass
@@ -152,7 +152,7 @@ def _get_inner_namespace(codestr):
     """
     tokenized = _tokenize(codestr)
     for token_info in reversed(tokenized):
-        if (token_info[0] == tokenize.OP and token_info[1] == NAMESPACE_DELIMITER
+        if(token_info[0] == tokenize.OP and token_info[1] == NAMESPACE_DELIMITER
             or token_info[0] == tokenize.NAME):
             continue
         # sys.std|...
@@ -328,7 +328,8 @@ def python_autocomplete(codestr, cmdline, cursorpos):
         # help(sys.|...
         if last[1] == NAMESPACE_DELIMITER:
             try:
-                candidates = eval('dir(%s)' % _get_inner_namespace(codestr), namespace)
+                candidates=eval('dir(%s)'%_get_inner_namespace(codestr),namespace)
+
                 candidates = _exclude_privates(candidates)
             except (NameError, SyntaxError):
                 #vim.command('call confirm("debug: syntax or name error#2\n%s")' % (codestr[:-1]))
@@ -440,21 +441,61 @@ class VimInterpreter(InteractiveConsole):
                     indent_level = (0 if indent_level==0 else indent_level-1)
 
 
-    def evaluate(self, codestr):
+    def evaluate(self, source):
         """ Evaluate python code in interpreter
-            codestr - python code (str)
+            source - python code (str)
         """
+        ### FIXME: indent error in multiline code
 
-        for line in codestr.splitlines():
-            self.push(line)
+
+        for line in source.splitlines():
+            if(line.strip() != ''):
+                self.push(line)
+
         self.push('\n')
 
 
-    def format_history(self, include_output=True, raw=False):
+    def execute_buffer(self):
+        """ Run current buffer in interpreter
+        """
+
+        buffername = vim.current.buffer.name
+        if buffername is None:
+            buffername = '<scratch>'
+
+        source = ('\n'.join(vim.current.buffer))
+        code = compile(source, buffername, 'exec')
+        self.runcode(code)
+
+
+    def format_history(self, include_input=True, include_output=True, raw=False):
         """ Format and return input/output history in current
             session (list of strings)
-            include_output (bool) if True (by default) output history added to result
+            include_input (bool) if True (by default) intput history
+              added to result
+            include_output (bool) if True (by default) output history
+              added to result
             raw (bool) if True extra info not appended to result
+
+        Usage:
+            >>> vi = VimInterpreter()
+            >>> vi.history = [\
+            (IN_FLAG, 'print("hello")'),(OUT_FLAG, "hello"),\
+            (IN_FLAG, 'print("world")'),(OUT_FLAG, "world")]
+
+            >>> #DEBUG >>> open("C:/h.txt", "w").write(str(vi.format_history(raw=True)))
+
+            >>> vi.format_history()
+            [' in[1]: print("hello")', 'out[1]: hello', ' in[2]: print("world")', 'out[2]: world']
+
+            >>> vi.format_history(include_input=False)
+            ['out[1]: hello', 'out[2]: world']
+
+            >>> vi.format_history(include_output=False)
+            [' in[1]: print("hello")', ' in[2]: print("world")']
+
+            >>> vi.format_history(raw=True)
+            ['print("hello")', 'hello', 'print("world")', 'world']
         """
         result = []
         lineno_map = {IN_FLAG: 1, OUT_FLAG: 1}
@@ -467,7 +508,9 @@ class VimInterpreter(InteractiveConsole):
             if line == '\n':
                 continue
 
-            if (include_output and flag == OUT_FLAG) or flag == IN_FLAG:
+            if((flag == IN_FLAG and include_input) or
+                flag == OUT_FLAG and include_output):
+
                 result.append(format_line(flag, line))
                 lineno_map[flag] += 1
 
@@ -476,6 +519,7 @@ class VimInterpreter(InteractiveConsole):
 
 _interpreter = VimInterpreter()
 
+# Public Interface
 
 def run():
     """ Run python read-eval-print loop
@@ -484,16 +528,22 @@ def run():
     _interpreter.interact()
 
 
-def evaluate(codestr):
+def evaluate(source):
     """ Evaluate python code in interpreter
-        codestr - python code (str)
+        source - python code (str)
     """
-    _interpreter.evaluate(codestr)
+    _interpreter.evaluate(source)
+
+
+def execute_buffer():
+    """ Run cuurent buffer in interpreter
+    """
+    _interpreter.execute_buffer()
 
 
 def _restart():
-    """ Restart interpreter """
-
+    """ Restart interpreter
+    """
     global _interpreter
     _interpreter = VimInterpreter()
 
@@ -503,6 +553,7 @@ def show_history(args=''):
         args:
             -r          history in raw format
             -i          input only
+            -o          output only
             -f <FILE>   write history to file
     """
     def parse_cmdline(args):
@@ -533,12 +584,19 @@ def show_history(args=''):
         return result
 
     parser = optparse.OptionParser()
-    parser.add_option('-f', dest='log_filename', metavar='FILE')
-    parser.add_option('-r', dest='raw_format', action='store_true', default=False)
-    parser.add_option('-i', dest='input_only', action='store_true', default=False)
+    parser.add_option('-f',dest='log_filename', metavar='FILE')
+    parser.add_option('-r',dest='raw_format',action='store_true',default=False)
+    parser.add_option('-i',dest='input_only',action='store_true',default=False)
+    parser.add_option('-o',dest='output_only',action='store_true',default=False)
 
     options, _ = parser.parse_args(parse_cmdline(args))
-    history_lines = _interpreter.format_history(not options.input_only, options.raw_format)
+
+    if options.output_only and options.input_only:
+        print('Error: mutually exclusive options "-i -o"')
+        return
+
+    history_lines = _interpreter.format_history(
+            not options.output_only, not options.input_only, options.raw_format)
 
     if options.log_filename:
         with open(options.log_filename.strip('"'), 'w') as logfile:

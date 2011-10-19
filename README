@@ -14,11 +14,13 @@ Commands:
      sessions), so that if you use PyInteractiveREPL, type x=1 here, close it and then reopen again, 
      variable x will still have value 1. 
 
- :PyInteractiveHistory [options]
-     Echoes session history. Possible options:
-               -r Print history without any formatting (mnemonic: raw)
-               -i Print only input history (mnemonic: input)
-               -f {FILE} Write history to file {FILE} 
+  :PyInteractiveHistory [options]
+      Echoes session history.
+      Possible options:
+           -r          Print history without any formatting (mnemonic: raw)
+           -i          Print only input history (mnemonic: input)
+           -o          Print only output history (mnemonic: output)
+           -f {FILE}   Write history to file {FILE}
 
  :PyInteractiveEval {code}
     Evaluate given code in the interpreter. Command is useful for quickly testing results
@@ -29,6 +31,9 @@ Commands:
             :PyInteractiveREPL
             >>> inc(10)
             11
+
+  :PyInteractiveRunBuffer
+      Execute current buffer in python interpreter and show result.
 
 Autocompletion is defined for PyInteractiveEval command and for input() opened by PyInteractiveREPL command and can be accessed by pressing <tab> key (default, see wildchar if you want to change this). 
 
