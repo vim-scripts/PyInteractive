@@ -1,6 +1,6 @@
 *pyinteractive.txt*         Simple python read-eval-print loop inside Vim
 
-           Copyright (c) 2010 clericJ <py.cleric at gmail.com>
+           Copyright (c) 2010-2011 clericJ <py.cleric at gmail.com>
 
 PyInteractive                           *pyinteractive*
 
@@ -8,6 +8,7 @@ Description                             |pyinteractive-description|
 Usage                                   |pyinteractive-usage|
 Autocompletion                          |pyinteractive-autocompletion|
 Commands                                |pyinteractive-commands|
+Magic commands                          |pyinteractive-magiccommands|
 Configuration                           |pyinteractive-configuration|
 Changelog                               |pyinteractive-changelog|
 Credits                                 |pyinteractive-credits|
@@ -18,7 +19,7 @@ Description                             *pyinteractive-description*
 
 This plugin is a simple realization of read-eval-print loop for Python in Vim
 command window. It requires Python support (see |+python|) and at least
-version 2.5 of Python interpreter (you can check python version by running
+version 2.6 of Python interpreter (you can check python version by running
 `:py import sys; print(sys.version)').
 
 ==============================================================================
@@ -97,7 +98,36 @@ Commands                                *pyinteractive-commands*
 
 ==============================================================================
 
-CONFIGURATION                           *pyinteractive-configuration*
+Magic commands                          *pyinteractive-magiccommands*
+
+ - '?' Display object docstring (use __doc__ attrib)
+>
+    >>> max?
+    max(iterable[, key=func]) -> value
+    max(a, b, c, ...[, key=func]) -> value
+    With a single iterable argument, return its largest item.
+    With two or more arguments, return the largest argument.
+<
+ - '%<' Append intput history to current buffer
+>
+    >>> def test(): pass
+    >>> %<
+    >>> <ESC>
+    == current buffer ==
+    def test(): pass
+<
+ - '%>' Append output history to current buffer
+>
+    >>> import sys; sys.version
+    '2.7.2 (default, Jun 12 2011, 15:08:59) [MSC v.1500 32 bit (Intel)]'
+    >>> %>
+    >>> <ESC>
+    == current buffer ==
+    2.7.2 (default, Jun 12 2011, 15:08:59) [MSC v.1500 32 bit (Intel)]
+<
+==============================================================================
+
+Configuration                           *pyinteractive-configuration*
 
                                         *g:pyinteractive_add_menu*
 g:pyinteractive_add_menu~
@@ -122,6 +152,18 @@ Example:
 ==============================================================================
 
 Changelog                               *pyinteractive-changelog*
+
+
+    ver 0.6.1
+        - Bugfixes
+
+    ver 0.6 (2011-10-23)
+        - Added magic command "?" (analog IPython)
+        - Added magic command "%<" - append intput history to current buffer
+        - Added magic command "%>" - append output history to current buffer
+        - In interpreter namespace added vim and sys modules, and _interpreter
+          object
+        - Fixed error in history output
 
     ver 0.5.4 (2011-10-13)
         - Added command PyInteractiveRunBuffer

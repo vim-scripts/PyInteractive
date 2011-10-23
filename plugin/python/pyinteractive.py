@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import with_statement
-
 """
 This module is part of vim PyInteractive plugin
 """
@@ -11,6 +9,7 @@ from StringIO import StringIO
 import contextlib
 import optparse
 import tokenize, token
+from collections import namedtuple
 
 #import logging
 #LOG_FILENAME = r'D:\usr\dev\python\src\projects\interactive-vim-python\pyinteractive.log'
@@ -31,8 +30,8 @@ MORE   = (sys.ps2 if hasattr(sys, 'ps2') else '... ')
 NAMESPACE_DELIMITER = '.'
 
 
-HIST_IN_PATTERN  = " in[%i]: "
-HIST_OUT_PATTERN = "out[%i]: "
+HIST_IN_PATTERN  = " in[{0}]: "
+HIST_OUT_PATTERN = "out[{0}]: "
 
 # history flags
 IN_FLAG  = 0
@@ -41,18 +40,23 @@ OUT_FLAG = 1
 # indent 4 spaces
 TABSTOP  = 4
 
+# printable: bool
+# match: lambda x
+# run: lambda x
+MagicCommand = namedtuple('MagicCommand', ('printable', 'match', 'run'))
+
 
 def _debug_tokeninfo(token_):
     """ _debug_tokeninfo(token_: tuple) -> str
     """
     type_, tok, (srow, scol), (erow, ecol), line = token_
     return '''\
-            type:       %s
-            token:      [%s]
-            srow-scol:  (%i,%i)
-            erow-ecol:  (%i,%i)
-            line:       [%s]
-            ''' % (token.tok_name[type_], tok, srow, scol, erow, ecol, line)
+            type:       {0}
+            token:      [{1}]
+            srow-scol:  ({2},{3})
+            erow-ecol:  ({4},{5})
+            line:       [{6}]
+            '''.format(token.tok_name[type_], tok, srow, scol, erow, ecol, line)
 
 
 @contextlib.contextmanager
@@ -223,15 +227,17 @@ def _exclude_privates(candidates):
     """
     return filter(lambda string: string[:1] != '_', candidates)
 
+
 # hel| divmod?
 def python_autocomplete(codestr, cmdline, cursorpos):
     """ python_autocomplete(codestr: str, cmdline: str, cursorpos: int) -> list
         Uses for vim command autocompletion
         Usage:
             # setup
-            >>> sys_module = __import__('sys')
-            >>> _interpreter.locals['sys'] = sys_module
+            >>> _interpreter.locals['sys'] = __import__('sys')
+            >>> _interpreter.locals['dt'] = __import__('datetime')
             >>> sys_names = _exclude_privates(dir(_interpreter.locals['sys']))
+            >>> dt_names = _exclude_privates(dir(_interpreter.locals['dt']))
 
             >>> _interpreter.locals['abbra_cadabra'] = None
             >>> python_autocomplete('abbr', 'abbr', 4)
@@ -244,13 +250,18 @@ def python_autocomplete(codestr, cmdline, cursorpos):
 
             >>> python_autocomplete('abbre', 'abbre', 5)
             ['abbreviations']
-            >>> ['sys.' + item for item in sys_names] == python_autocomplete('sys.', 'sys.', 4)
+            >>> ['sys.' + item for item in sys_names] \
+                    == python_autocomplete('sys.', 'sys.', 4)
             True
             >>> (['help(sys.' + item for item in sys_names] \
                     == python_autocomplete('help(sys.', 'help(sys.', 9))
             True
             >>> python_autocomplete('help(sys.stdou', 'help(sys.stdou', 14)
             ['help(sys.stdout']
+
+            >>> ['dt.' + item for item in dt_names] \
+                    == python_autocomplete('dt.', 'dt.', 3) #XXX
+            True
 
             >>> python_autocomplete('help(abbr', 'help(abbr', 9)
             ['help(abbreviations', 'help(abbra_cadabra']
@@ -301,7 +312,7 @@ def python_autocomplete(codestr, cmdline, cursorpos):
         if lastop_info and lastop_info[1] == NAMESPACE_DELIMITER:
             inner = _get_inner_namespace(codestr)
             try:
-                candidates = eval('dir(%s)' % inner, namespace)
+                candidates = eval('dir({0})'.format(inner), namespace)
             except (NameError, SyntaxError):
                 #vim.command('call confirm("debug: syntax or name error#1\n<%s>\n<%s>")' % (codestr, inner))
                 return []
@@ -328,7 +339,8 @@ def python_autocomplete(codestr, cmdline, cursorpos):
         # help(sys.|...
         if last[1] == NAMESPACE_DELIMITER:
             try:
-                candidates=eval('dir(%s)'%_get_inner_namespace(codestr),namespace)
+                candidates = eval('dir({0})'.format(\
+                        _get_inner_namespace(codestr)), namespace)
 
                 candidates = _exclude_privates(candidates)
             except (NameError, SyntaxError):
@@ -374,6 +386,14 @@ class dynamicmethod(object):
 class VimInterpreter(InteractiveConsole):
 
     def __init__(self, locals=None, filename="<console>"):
+
+        if locals is None:
+            locals = {'__name__': '__console__', '__doc__': None}
+            locals['_interpreter'] = self
+            locals['sys'] = sys
+            if 'vim' in globals():
+                locals['vim'] = vim
+
         InteractiveConsole.__init__(self, locals, filename)
 
         # history consists of list of pairs [(FLAG, record), ...]
@@ -383,24 +403,46 @@ class VimInterpreter(InteractiveConsole):
 
 
     def push(self, line):
+        """ push(line: str) -> int
+            See InteractiveConsole.push documentation
+        """
+        result = 0
         stream = StringIO()
         stdout = sys.stdout
-        interpriter = self
 
         # replace StringIO.write method in stream
         @dynamicmethod(stream)
-        def write(self, data):
-            interpriter.history.append((OUT_FLAG, data))
+        def write(this, data):
             stdout.write(data)
+            return StringIO.write(this, data)
 
         self.history.append((IN_FLAG, line))
         with redirect_output(stream):
-            return InteractiveConsole.push(self, line)
+            result = InteractiveConsole.push(self, line)
+
+        output = stream.getvalue()
+        if output.strip():
+            self.history.append((OUT_FLAG, output))
+
+        return result
+
+
+    def parse_magic(self, codestr):
+        """  parse_magic(codestr: str) -> bool
+            if magic command exists in code return True else False
+        """
+        for command in MAGICS:
+            if command.match(codestr):
+                result = command.run(codestr)
+                if command.printable:
+                    print(result)
+
+                return True
+        return False
 
 
     def interact(self, banner=None):
-        """ Run python read-eval-print loop
-            press <esc> to exit
+        """ Run python read-eval-print loop. Press <ESC> to exit
         """
 
         if banner:
@@ -408,26 +450,29 @@ class VimInterpreter(InteractiveConsole):
 
         while True:
             with vim_input_guard():
-                codestr = vim.eval(u'input("%s","","customlist,'
-                        'pyinteractive#PythonAutoComplete")' % PROMPT)
+                codestr = vim.eval(u'input("{0}","","customlist,'
+                        'pyinteractive#PythonAutoComplete")'.format(PROMPT))
 
             vim.command('normal g1')
             if codestr is None:
                 break
 
+            elif (codestr.strip() != '') and self.parse_magic(codestr) is True:
+               continue
+
             # autoident
             indent = (' ' * TABSTOP)
             indent_level = 1
-            autoindent = (lambda level: indent * level if level > 0 else "")
+            autoindent = (lambda level: indent * level if level > 0 else '')
 
             while self.push(codestr):
-                print(codestr)
+                #print(codestr)
 
                 with vim_input_guard():
                     codestr = vim.eval(
-                        u'input("%s","%s","customlist,'
-                                'pyinteractive#PythonAutoComplete")'
-                                % (MORE, autoindent(indent_level)) )
+                        u'input("{0}","{1}","customlist,'
+                                'pyinteractive#PythonAutoComplete")'.format(
+                                 MORE, autoindent(indent_level)) )
 
                 vim.command('normal g1')
                 if codestr is None:
@@ -461,7 +506,7 @@ class VimInterpreter(InteractiveConsole):
 
         buffername = vim.current.buffer.name
         if buffername is None:
-            buffername = '<scratch>'
+            buffername = '<console>'
 
         source = ('\n'.join(vim.current.buffer))
         code = compile(source, buffername, 'exec')
@@ -483,7 +528,7 @@ class VimInterpreter(InteractiveConsole):
             (IN_FLAG, 'print("hello")'),(OUT_FLAG, "hello"),\
             (IN_FLAG, 'print("world")'),(OUT_FLAG, "world")]
 
-            >>> #DEBUG >>> open("C:/h.txt", "w").write(str(vi.format_history(raw=True)))
+            >>> # >>>open("C:/h.txt","w").write(str(vi.format_history(raw=True)))
 
             >>> vi.format_history()
             [' in[1]: print("hello")', 'out[1]: hello', ' in[2]: print("world")', 'out[2]: world']
@@ -496,13 +541,20 @@ class VimInterpreter(InteractiveConsole):
 
             >>> vi.format_history(raw=True)
             ['print("hello")', 'hello', 'print("world")', 'world']
+
+            >>> vi.history = [(IN_FLAG, 'def test(): print 1,2,3'), (OUT_FLAG, '1, 2, 3')]
+            >>> vi.format_history(raw=True)
+            ['def test(): print 1,2,3', '1, 2, 3']
+
+            >>> vi.format_history()
+            [' in[1]: def test(): print 1,2,3', 'out[1]: 1, 2, 3']
         """
         result = []
         lineno_map = {IN_FLAG: 1, OUT_FLAG: 1}
         flags_case = {IN_FLAG: HIST_IN_PATTERN, OUT_FLAG: HIST_OUT_PATTERN}
 
         format_line = (lambda flag, line:
-                (line if raw else (flags_case[flag] % lineno_map[flag] + line)))
+            (line if raw else (flags_case[flag].format(lineno_map[flag])+line)))
 
         for flag, line in self.history:
             if line == '\n':
@@ -517,7 +569,35 @@ class VimInterpreter(InteractiveConsole):
         return result
 
 
+    def clear_history(self):
+        """ Clear all history items
+        """
+        self.history = []
+
+
 _interpreter = VimInterpreter()
+
+MAGICS = [
+    # use ? for help (max?)
+    MagicCommand(
+        True,
+        (lambda source: source.rstrip()[-1] == '?'),
+        (lambda source: eval('{0}.__doc__'.format(source[:-1]),
+            _interpreter.locals))
+    ), # append input history to current buffer
+    MagicCommand(
+        False,
+        (lambda source: source.strip() == '%<'),
+        (lambda source: [vim.current.buffer.append(line)
+         for line in _interpreter.format_history(include_output=False,raw=True)])
+    ), # append output history to current buffer
+    MagicCommand(
+        False,
+        (lambda source: source.strip() == '%>'),
+        (lambda source: [vim.current.buffer.append(line)
+         for line in _interpreter.format_history(include_input=False,raw=True)])
+    ),
+]
 
 # Public Interface
 
@@ -610,7 +690,7 @@ def _test():
     doctest.testmod()
 
 
-if(__name__ == '__main__'):
+if(__name__ in ('__main__', '__console__')):
     _test()
 
 

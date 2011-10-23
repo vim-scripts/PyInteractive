@@ -1,12 +1,7 @@
 " File:     pyinteractive.vim
 " Brief:    Python read-eval-print loop inside Vim
 " Autor:    clericJ (py.cleric at gmail.com)
-" Version:  0.5.3
 
-" 0.5.4
-" added option pyinteractive_add_menu
-" added pyinteractive_add_context_menu
-" added command PyInteractiveRunBuffer
 
 if v:version < 700
     echoerr 'PyInteractive does not work this version of Vim (' . v:version . ').'
