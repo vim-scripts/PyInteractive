@@ -125,6 +125,10 @@ Magic commands                          *pyinteractive-magiccommands*
     == current buffer ==
     2.7.2 (default, Jun 12 2011, 15:08:59) [MSC v.1500 32 bit (Intel)]
 <
+ - '!' Pretty print result 
+>
+    >>> sys.modules!
+<
 ==============================================================================
 
 Configuration                           *pyinteractive-configuration*
@@ -148,11 +152,25 @@ files.
 Example:
 >
     let g:pyinteractive_add_context_menu = 0
+<
+                                        *g:pyinteractive_add_mappings*
+g:pyinteractive_add_mappings~
+Default: 1
+
+Enable/Disable plugin mappings
+>
+    let g:pyinteractive_add_mappings = 0
+<
 
 ==============================================================================
 
 Changelog                               *pyinteractive-changelog*
 
+
+    ver 0.6.2 (2012-02-22)
+        - Added magic command "!" for pretty printing (e.g. sys.modules!)
+        - Added mapping <c-i> (interpreter call)
+        - Code reorganization
 
     ver 0.6.1
         - Bugfixes
@@ -166,7 +184,7 @@ Changelog                               *pyinteractive-changelog*
         - Fixed error in history output
 
     ver 0.5.4 (2011-10-13)
-        - Added command PyInteractiveRunBuffer
+        - Added command |:PyInteractiveRunBuffer|
         - Added PyInteractive menu (Plugin.PyInteractive) and context menu
           item "Evaluate" (for selected text)
         - Added option pyinteractive_add_menu

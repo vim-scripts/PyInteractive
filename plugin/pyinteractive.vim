@@ -34,7 +34,7 @@ endfunction
 
 call s:initVariable("g:pyinteractive_add_menu", 1)
 call s:initVariable("g:pyinteractive_add_context_menu", 1)
-
+call s:initVariable("g:pyinteractive_add_mappings", 1)
 let s:plugin_directory=fnamemodify(expand('<sfile>'), ':p:h:h')
 
 python << EOF
@@ -109,5 +109,9 @@ if g:pyinteractive_add_context_menu
     " Execute selected text
     au MenuPopup * call ToggleFTContextMenu("python","vmenu","PopUp.-Usrsep99-",":")
     au MenuPopup * call ToggleFTContextMenu("python","vmenu","PopUp.Evaluate", "pyinteractive#EvaluateSelected(visualmode())")
+endif
+
+if g:pyinteractive_add_mappings
+   map <C-i> :PyInteractiveREPL<CR>
 endif
 

@@ -122,7 +122,11 @@ PyInteractive                           *pyinteractive*
     >>> <ESC>
     == current buffer ==
     2.7.2 (default, Jun 12 2011, 15:08:59) [MSC v.1500 32 bit (Intel)
-
+<
+ - '!' Печать вывода в "красивом" виде
+>
+    >>> sys.modules!
+<
 ==============================================================================
 
 НАСТРОЙКИ                               *pyinteractive-configuration*
@@ -145,11 +149,26 @@ g:pyinteractive_add_context_menu~
 Пример:
 >
     let g:pyinteractive_add_context_menu = 0
+<
+                                        *g:pyinteractive_add_mappings*
+g:pyinteractive_add_mappings~
+По умолчанию: 1
+
+Добавить сочетание клавиш <c-i> для вызова интерпретатора
 >
+    let g:pyinteractive_add_mappings = 0
+<
+
 ==============================================================================
 
 ИСТОРИЯ ВЕРСИЙ                          *pyinteractive-changelog*
 
+    ver 0.6.2 (2012-02-22)
+    - Добавлена `магическая` команда "!" для печати вывода в красивом виде,
+      используя pprint. Пример sys.modules!
+    - Добавлена (отключаемая опциями) горячая клавиша для вызова
+      интерпретатора (<c-i>)
+    - Реорганизован код
 
     ver 0.6.1
     - Исправление ошибок
@@ -165,7 +184,7 @@ g:pyinteractive_add_context_menu~
     - Исправлена ошибка при выводе истории
 
     ver 0.5.4 (2011-10-13)
-    - Добавлена команда PyInteractiveRunBuffer
+    - Добавлена команда |:PyInteractiveRunBuffer|
     - Добавлено (отключаемое опциями) меню Plugin.PyInteractive
     - Добавлен (отключаемый опциями) пункт "Evaluate" в контекстное меню
       для файлов python (доступен при выделении фрагмента кода)
