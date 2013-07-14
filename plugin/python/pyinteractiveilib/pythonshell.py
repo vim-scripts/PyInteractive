@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+#from __future__ import print_function
 
 import sys
 from code import InteractiveConsole
@@ -75,7 +75,7 @@ class VimInterpreter(InteractiveConsole):
         return result
 
 
-    def parse_ss(self, text):
+    def _parse_ss(self, text):
         """  parse_ss(text: str) -> bool
             if syntax sugar exists in code return True else False
         """
@@ -90,6 +90,8 @@ class VimInterpreter(InteractiveConsole):
 
 
     def _display_banner(self, banner):
+        ''' _display_banner(banner: str) -> None
+        '''
         if banner:
             InteractiveConsole.push(self, 'print({0})'.format(banner))
             return
@@ -108,14 +110,14 @@ class VimInterpreter(InteractiveConsole):
         while True:
             with vim_input_guard():
                 text = vim.eval(u'input("{0}","","customlist,'
-                        'pyinteractive#PythonAutoComplete")'.format(PROMPT))
+                    'pyinteractive#PythonAutoCompleteInput")'.format(PROMPT))
 
             vim.command('echo "\r"')
-            if text is None:
+            if not text:
                 break
 
-            elif (text.strip() != '') and self.parse_ss(text) is True:
-               continue
+            elif (text.strip() != '') and self._parse_ss(text) is True:
+                continue
 
             # autoident
             indent = (' ' * TABSTOP)
@@ -126,14 +128,14 @@ class VimInterpreter(InteractiveConsole):
                 with vim_input_guard():
                     text = vim.eval(
                         u'input("{0}","{1}","customlist,'
-                                'pyinteractive#PythonAutoComplete")'.format(
+                            'pyinteractive#PythonAutoCompleteInput")'.format(
                                  MORE, autoindent(indent_level)) )
 
                 vim.command('echo "\r"')
-                if text is None:
+                if not text:
                     return
 
-                # TODO: hardcoded condition
+                # XXX: hardcoded condition
                 if text.rstrip().endswith(':'):
                     indent_level += 1
 
@@ -141,28 +143,70 @@ class VimInterpreter(InteractiveConsole):
                     indent_level = (0 if indent_level==0 else indent_level-1)
 
 
-    def evaluate(self, source):
-        """ Evaluate python code in interpreter
-            source - python code (str)
+    def evaluate(self, line):
+        """ Evaluate python code line in interpreter
+            line - python code (str)
         """
         ### FIXME: indent error in multiline code
-        for line in source.splitlines():
-            if(line.strip() != ''):
-                self.push(line)
 
-        self.push('\n')
+        self.push(line + u'\n')
+
+
+    def evaulate_range(self):
+        """ Evaluate current range in buffer
+        """
+        source = (u'\n'.join([line for line in iter(vim.current.range)]))
+        self._execute_source(source)
 
 
     def execute_buffer(self):
         """ Run current buffer in interpreter
         """
+        source = (u'\n'.join(vim.current.buffer))
+        self._execute_source(source)
+
+
+    def _execute_source(self, source):
+        """ Compile and execute source code
+            source - source code (str)
+        """
+        if not source:
+            return
+
         buffername = vim.current.buffer.name
         if buffername is None:
-            buffername = '<empty>'
+            buffername = u'<empty>'
 
-        source = ('\n'.join(vim.current.buffer))
-        code = compile(source, buffername, 'exec')
+        code = self.compilex(source, buffername, 'exec')
         self.runcode(code)
+
+
+    def compilex(self, source, filename, mode, *args, **kwargs):
+        """ Compile source code.
+        Will mangle coding definitions on first two lines. 
+        
+        * This method should be called with Unicode sources.
+
+        code from: http://code.google.com/p/iep/issues/detail?id=22
+        """
+        
+        # Split in first two lines and the rest
+        parts = source.split('\n', 3)
+        
+        # Replace any coding definitions
+        ci = 'coding is'
+        contained_coding = False
+        for i in range(len(parts)-1):
+            tmp = parts[i]
+            if 'coding' in tmp:
+                contained_coding = True
+                parts[i] = tmp.replace('coding=', ci).replace('coding:', ci)
+        
+        # Combine parts again (if necessary)
+        if contained_coding:
+            source = '\n'.join(parts)
+
+        return compile(source, filename, mode, *args, **kwargs)
 
 
     def format_history(self, include_input=True, include_output=True, raw=False):

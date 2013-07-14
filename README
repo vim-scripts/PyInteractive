@@ -2,8 +2,16 @@ This is a mirror of http://www.vim.org/scripts/script.php?script_id=3231
 
 This plugin is a simple realization of read-eval-print loop for Python in Vim command window. It requires Python support (see +python) and at least version 2.6 of Python interpreter (you can check python version by running :py import sys; print(sys.version) ). 
 
-Demonstration (ver 0.5): http://www.youtube.com/user/clericJ?feature=mhsn
-Project home: http://code.google.com/p/vim-pyinteractive-plugin/
+Features:
+ - auto-completion (tab)
+ - auto-indent
+ - keeps your recent results in the result history, for later user.
+ - IPython-like magic operators (e.g. object?)
+ - evaluate selected code
+ - and more (see the pyinteractive documentation for details)
+
+Demonstration (ver 0.5): http://www.youtube.com/watch?v=oy9Cv3eKy-0&feature=plcp
+Project home: https://github.com/clericJ/pyinteractive-vim
 
 
 Commands:
